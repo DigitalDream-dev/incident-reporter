@@ -8,10 +8,9 @@ export {
     IncidentTemplateSchema, OrchestratorDecisionSchema, type IncidentTemplate, type OrchestratorDecision
 } from "./schema/incident-template.js";
 
-// Adapter exports
+// Adapter exports (inspector.config.json: copilot-extension | subprocess | cursor-subprocess)
 export { ClaudeSubprocessModel } from "./adapter/claude-subprocess.js";
 export { loadConfig, type Config } from "./adapter/config.js";
 export { CursorSubprocessModel } from "./adapter/cursor-subprocess.js";
 export { LlmLoggingHandler } from "./adapter/logging.js";
 export { getModel, getWorkflowModel } from "./adapter/provider.js";
-

@@ -1,9 +1,16 @@
 #!/usr/bin/env node
+import "dotenv/config";
+
 /**
  * Manual trigger (stand-in for PagerDuty webhook later):
  *
  *   ANTHROPIC_API_KEY=... USE_MOCK_NOTION=true npx tsx src/cli.ts --page-id <notion_page_id>
- *   CLAUDE_TRANSPORT=cli  (uses `claude` CLI; no API key — must be logged in via CLI)
+ *   npm requires `--` before script args:  npm run dev -- --page-id <notion_page_id>
+ *   Or set NOTION_PAGE_ID in .env and run:  npm run dev
+ *
+ * LLM routing: `inspector.config.json` (or INSPECTOR_CONFIG_PATH); see `src/adapter/`.
+ *   - copilot-extension: set OPENAI_BASE_URL + OPENAI_API_KEY (.env) for the Copilot HTTP endpoint
+ *   - cursor-subprocess: set providerMode + `cursor` block (API key in config or env your CLI expects)
  *
  * Real Notion MCP: set MCP_SERVERS_JSON and omit USE_MOCK_NOTION.
  */
@@ -14,11 +21,18 @@ import { loadNotionMcpTools } from "./mcp/load-notion-tools.js";
 function parseArgs(): { pageId: string } {
   const argv = process.argv.slice(2);
   const idx = argv.indexOf("--page-id");
-  if (idx === -1 || !argv[idx + 1]) {
-    console.error("Usage: incident-reporter --page-id <NOTION_PAGE_ID>");
-    process.exit(1);
+  if (idx !== -1 && argv[idx + 1]) {
+    return { pageId: argv[idx + 1]! };
   }
-  return { pageId: argv[idx + 1]! };
+  const fromEnv = process.env.NOTION_PAGE_ID?.trim();
+  if (fromEnv) {
+    return { pageId: fromEnv };
+  }
+  console.error(
+    "Missing Notion page id. Use: npm run dev -- --page-id <NOTION_PAGE_ID>\n" +
+    "(npm needs `--` before arguments) or set NOTION_PAGE_ID in the environment.",
+  );
+  process.exit(1);
 }
 
 async function main() {

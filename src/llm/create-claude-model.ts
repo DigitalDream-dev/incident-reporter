@@ -32,6 +32,7 @@ export function createClaudeModel(): BaseChatModel {
   if (transport === "api") {
     return new ChatAnthropic({
       apiKey: requireEnv("ANTHROPIC_API_KEY"),
+      anthropicApiUrl: "http://127.0.0.1:3030/v1",
       model,
       temperature: 0,
     });

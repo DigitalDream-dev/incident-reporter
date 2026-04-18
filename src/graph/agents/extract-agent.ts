@@ -12,16 +12,24 @@ export function createExtractAgent(llm: BaseChatModel, tools: DynamicStructuredT
     prompt: `You are Agent 1 (incident triage) for on-call workflows.
 
 Use the available Notion MCP tools to read the incident Notion page the user references.
-From that page, determine:
-- project (owning product or repo area)
-- service (the failing or impacted service)
-- connection (where it runs or what it connects to: clusters, dependencies, regions, etc.)
+From that page, extract ALL required fields:
+- project: owning product or repo area
+- service: the failing or impacted service
+- connection: where it runs or what it connects to (clusters, dependencies, regions, etc.)
+- title: the incident title from the Notion page
+- notionPageId: the Notion page ID provided by the user
+- tags: a small array of routing tags derived from the context
 
-Build a small set of tags (array of short strings) useful for routing and future automation
-(e.g. environment, team, component).
+For tags, analyze the connection string and other context to generate useful labels for routing
+and automation. Include tags for:
+- Environment (prod, staging, dev)
+- Infrastructure (kubernetes, k8s, postgres, kafka, aws, gcp, etc.)
+- Service/component names
+- Team or domain labels
 
-When tool calls return JSON or text, parse carefully. The final structured output must match the schema exactly.
-Set notionPageId to the same id the user provided.`,
+Example tags: ["prod", "kubernetes", "billing", "database", "postgres", "kafka", "messaging"]
+
+When tool calls return JSON or text, parse carefully. The final structured output must match the schema exactly.`,
     responseFormat: IncidentTemplateSchema,
   });
 }

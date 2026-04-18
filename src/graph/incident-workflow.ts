@@ -1,5 +1,6 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { END, START, StateGraph } from "@langchain/langgraph";
+import type { BaseCheckpointSaver } from "@langchain/langgraph-checkpoint";
 import type { DynamicStructuredTool } from "@langchain/core/tools";
 import { createExtractAgent, createExtractNode } from "./agents/extract-agent.js";
 import { createCreateRecordAgent, createCreateRecordNode } from "./agents/create-record-agent.js";
@@ -12,7 +13,11 @@ import { IncidentWorkflowStateAnnotation } from "./state.js";
 
 export type { IncidentWorkflowState } from "./state.js";
 
-export function buildIncidentWorkflow(llm: BaseChatModel, tools: DynamicStructuredTool[]) {
+export function buildIncidentWorkflow(
+  llm: BaseChatModel,
+  tools: DynamicStructuredTool[],
+  compileOptions?: { checkpointer?: BaseCheckpointSaver },
+) {
   const extractAgent = createExtractAgent(llm, tools);
   const createRecordAgent = createCreateRecordAgent(llm, tools);
 
@@ -34,5 +39,7 @@ export function buildIncidentWorkflow(llm: BaseChatModel, tools: DynamicStructur
     .addEdge("createRecord", END)
     .addEdge("finishRejected", END);
 
-  return graph.compile();
+  return graph.compile(
+    compileOptions?.checkpointer ? { checkpointer: compileOptions.checkpointer } : {},
+  );
 }

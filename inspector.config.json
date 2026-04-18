@@ -4,7 +4,7 @@
     "claude":    "subprocess",
     "cursor":    "cursor-subprocess"
   },
-  "_note": "Change providerMode to one of the values above to switch providers",
+  "_note": "Set providerMode to a _profiles value. copilot-extension needs OPENAI_BASE_URL + OPENAI_API_KEY in .env; cursor-subprocess uses the cursor block (and optional INSPECTOR_CONFIG_PATH).",
 
   "providerMode": "copilot-extension",
 

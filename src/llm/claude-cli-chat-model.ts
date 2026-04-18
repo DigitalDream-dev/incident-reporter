@@ -1,9 +1,15 @@
+import type {
+  BaseLanguageModelInput,
+  StructuredOutputMethodOptions,
+} from "@langchain/core/language_models/base";
 import {
   BaseChatModel,
   type BaseChatModelCallOptions,
   type BaseChatModelParams,
 } from "@langchain/core/language_models/chat_models";
 import type { BindToolsInput } from "@langchain/core/language_models/chat_models";
+import type { Runnable } from "@langchain/core/runnables";
+import { chatModelWithStructuredOutput } from "./structured-output-tool-calls.js";
 import { AIMessage, type BaseMessage } from "@langchain/core/messages";
 import { isAIMessage, isToolMessage } from "@langchain/core/messages";
 import type { CallbackManagerForLLMRun } from "@langchain/core/callbacks/manager";
@@ -194,5 +200,14 @@ The JSON must be valid.`;
     return {
       generations: [{ text, message: msg }],
     };
+  }
+
+  override withStructuredOutput<
+    RunOutput extends Record<string, unknown> = Record<string, unknown>,
+  >(
+    outputSchema: unknown,
+    config?: StructuredOutputMethodOptions<boolean>,
+  ): Runnable<BaseLanguageModelInput, RunOutput> {
+    return chatModelWithStructuredOutput(this, outputSchema, config);
   }
 }
