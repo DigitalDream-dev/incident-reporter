@@ -1,0 +1,36 @@
+{
+  "name": "incident-reporter",
+  "version": "1.0.0",
+  "description": "LangGraph incident workflow: Notion MCP → static template → orchestrator → Notion write-back",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "langchain",
+    "langgraph",
+    "mcp",
+    "notion",
+    "incident"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@langchain/anthropic": "^1.3.26",
+    "@langchain/core": "^1.1.40",
+    "@langchain/langgraph": "^1.2.9",
+    "@langchain/mcp-adapters": "^1.1.3",
+    "dotenv": "^17.4.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  }
+}
