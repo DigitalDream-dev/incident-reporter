@@ -8,13 +8,13 @@ import "dotenv/config";
  *   npm requires `--` before script args:  npm run dev -- --page-id <notion_page_id>
  *   Or set NOTION_PAGE_ID in .env and run:  npm run dev
  *
- * LLM routing: `inspector.config.json` (or INSPECTOR_CONFIG_PATH); see `src/adapter/`.
- *   - copilot-extension: set OPENAI_BASE_URL + OPENAI_API_KEY (.env) for the Copilot HTTP endpoint
- *   - cursor-subprocess: set providerMode + `cursor` block (API key in config or env your CLI expects)
+ * LLM: `inspector.config.json` (or INSPECTOR_CONFIG_PATH); see `src/llm/inspector/`.
+ *   - copilot-extension: set OPENAI_BASE_URL + OPENAI_API_KEY (.env)
+ *   - cursor-subprocess: set providerMode + `cursor` block
  *
  * Real Notion MCP: set MCP_SERVERS_JSON and omit USE_MOCK_NOTION.
  */
-import { getWorkflowModel } from "./adapter/provider.js";
+import { resolveAgentChatModel } from "./llm/inspector/resolve-chat-model.js";
 import { buildIncidentWorkflow } from "./graph/incident-workflow.js";
 import { loadNotionMcpTools } from "./mcp/load-notion-tools.js";
 
@@ -37,7 +37,7 @@ function parseArgs(): { pageId: string } {
 
 async function main() {
   const { pageId } = parseArgs();
-  const llm = getWorkflowModel();
+  const llm = resolveAgentChatModel();
   const tools = await loadNotionMcpTools();
   const workflow = buildIncidentWorkflow(llm, tools);
 

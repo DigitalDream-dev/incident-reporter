@@ -6,9 +6,6 @@ import type { LLMResult } from "@langchain/core/outputs";
 /**
  * LangChain callback handler that logs every LLM call (prompt + response)
  * to the console. Works with all provider modes.
- *
- * Usage: pass `{ callbacks: [new LlmLoggingHandler()] }` when invoking
- * agents or chains, or set it as a default callback on the model.
  */
 export class LlmLoggingHandler extends BaseCallbackHandler {
   name = "llm-logger";
@@ -27,10 +24,7 @@ export class LlmLoggingHandler extends BaseCallbackHandler {
     console.log("└──────────────────────────────────");
   }
 
-  handleChatModelStart(
-    _llm: Serialized,
-    messages: BaseMessage[][],
-  ): void {
+  handleChatModelStart(_llm: Serialized, messages: BaseMessage[][]): void {
     console.log("\n┌─── [LLM] CHAT PROMPT ───");
     for (const batch of messages) {
       for (const msg of batch) {

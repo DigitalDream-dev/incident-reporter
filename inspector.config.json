@@ -1,24 +1,20 @@
 {
   "_profiles": {
-    "copilot":   "copilot-extension",
-    "claude":    "subprocess",
-    "cursor":    "cursor-subprocess"
+    "copilot": "copilot-extension",
+    "claude": "subprocess",
+    "cursor": "cursor-subprocess"
   },
   "_note": "Set providerMode to a _profiles value. copilot-extension needs OPENAI_BASE_URL + OPENAI_API_KEY in .env; cursor-subprocess uses the cursor block (and optional INSPECTOR_CONFIG_PATH).",
-
-  "providerMode": "copilot-extension",
-
+  "providerMode": "cursor-subprocess",
   "model": "openai:claude-sonnet-4.6",
-
   "subprocess": {
     "command": "claude",
     "model": "claude-sonnet-4-6",
     "apiKey": "sk-ant-your-anthropic-api-key-here"
   },
-
   "cursor": {
     "command": "agent",
-    "model": "claude-4.6-sonnet",
-    "apiKey": "cur_your-cursor-api-key-here"
+    "model": "claude-4.5-sonnet",
+    "apiKey": "crsr_f97ff01de8ed6ff315157548d8886747415072f96ced7565fdc3bfbc6067d99f"
   }
 }

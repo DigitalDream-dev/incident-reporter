@@ -23,10 +23,9 @@ const configSchema = z.object({
   cursor: cursorConfigSchema.optional(),
 });
 
-export type Config = z.infer<typeof configSchema>;
+export type InspectorConfig = z.infer<typeof configSchema>;
 
-/** Loads `inspector.config.json` from cwd, or `INSPECTOR_CONFIG_PATH` when set. */
-export function loadConfig(): Config {
+export function loadInspectorConfig(): InspectorConfig {
   const configPath = process.env.INSPECTOR_CONFIG_PATH?.trim()
     ? resolve(process.env.INSPECTOR_CONFIG_PATH.trim())
     : resolve(process.cwd(), "inspector.config.json");

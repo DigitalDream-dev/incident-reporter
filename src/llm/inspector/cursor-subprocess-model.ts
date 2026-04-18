@@ -1,8 +1,14 @@
 import type { CallbackManagerForLLMRun } from "@langchain/core/callbacks/manager";
+import type {
+  BaseLanguageModelInput,
+  StructuredOutputMethodOptions,
+} from "@langchain/core/language_models/base";
 import {
-    BaseChatModel,
-    type BaseChatModelParams,
+  BaseChatModel,
+  type BaseChatModelParams,
 } from "@langchain/core/language_models/chat_models";
+import type { Runnable } from "@langchain/core/runnables";
+import { chatModelWithStructuredOutput } from "../structured-output-tool-calls.js";
 import type { BaseMessage } from "@langchain/core/messages";
 import { AIMessage } from "@langchain/core/messages";
 import type { ChatResult } from "@langchain/core/outputs";
@@ -15,42 +21,40 @@ interface ToolDef {
   parameters?: Record<string, unknown>;
 }
 
-interface ClaudeSubprocessParams extends BaseChatModelParams {
+interface CursorSubprocessParams extends BaseChatModelParams {
   command?: string;
-  claudeModel?: string;
+  cursorModel?: string;
   apiKey?: string;
 }
 
 /**
- * A custom LangChain ChatModel that routes calls through the Claude CLI
- * as a subprocess. Supports basic chat and tool calling by embedding
- * tool schemas in the prompt and parsing structured JSON responses.
+ * Routes calls through the Cursor CLI (`agent -p`) as a subprocess.
  */
-export class ClaudeSubprocessModel extends BaseChatModel {
+export class CursorSubprocessModel extends BaseChatModel {
   static lc_name() {
-    return "ClaudeSubprocessModel";
+    return "CursorSubprocessModel";
   }
 
   command: string;
-  claudeModel?: string;
+  cursorModel?: string;
   apiKey?: string;
   boundTools: ToolDef[] = [];
 
-  constructor(params: ClaudeSubprocessParams = {}) {
+  constructor(params: CursorSubprocessParams = {}) {
     super(params);
-    this.command = params.command ?? "claude";
-    this.claudeModel = params.claudeModel;
+    this.command = params.command ?? "agent";
+    this.cursorModel = params.cursorModel;
     this.apiKey = params.apiKey;
   }
 
   _llmType(): string {
-    return "claude-subprocess";
+    return "cursor-subprocess";
   }
 
   override bindTools(tools: any[], _kwargs?: any): this {
-    const bound = new ClaudeSubprocessModel({
+    const bound = new CursorSubprocessModel({
       command: this.command,
-      claudeModel: this.claudeModel,
+      cursorModel: this.cursorModel,
       apiKey: this.apiKey,
     });
     bound.boundTools = tools.map((t) => ({
@@ -73,20 +77,52 @@ export class ClaudeSubprocessModel extends BaseChatModel {
     const { systemPrompt, userPrompt } = this.formatMessages(messages);
     const fullSystemPrompt = this.buildSystemPrompt(systemPrompt);
 
-    const args = ["-p"];
+    const combinedPrompt =
+      fullSystemPrompt.trim().length > 0
+        ? `${fullSystemPrompt.trim()}\n\n---\n\n${userPrompt}`
+        : userPrompt;
+
+    console.log("\n┌─── [cursor-subprocess] PROMPT ───");
     if (fullSystemPrompt) {
-      args.push("--system-prompt", fullSystemPrompt);
+      console.log(
+        "│ System:",
+        fullSystemPrompt.slice(0, 500),
+        fullSystemPrompt.length > 500 ? "..." : "",
+      );
     }
-    if (this.claudeModel) {
-      args.push("--model", this.claudeModel);
+    console.log(
+      "│ User:",
+      userPrompt.slice(0, 1000),
+      userPrompt.length > 1000 ? "..." : "",
+    );
+    console.log("└──────────────────────────────────");
+
+    const args = ["-p", "--trust"];
+    if (this.cursorModel) {
+      args.push("--model", this.cursorModel);
     }
     args.push("--output-format", "text");
-    args.push(userPrompt);
+    args.push(combinedPrompt);
 
-    const output = await this.runClaude(args);
+    const output = await this.runAgent(args);
 
-    // Try to parse tool calls from output
-    const toolCalls = this.boundTools.length > 0 ? this.parseToolCalls(output) : [];
+    const toolCalls =
+      this.boundTools.length > 0 ? this.parseToolCalls(output) : [];
+
+    console.log("\n┌─── [cursor-subprocess] RESPONSE ───");
+    if (toolCalls.length > 0) {
+      console.log(
+        "│ Tool calls:",
+        JSON.stringify(toolCalls, null, 2).slice(0, 2000),
+      );
+    } else {
+      console.log(
+        "│",
+        output.slice(0, 2000),
+        output.length > 2000 ? "..." : "",
+      );
+    }
+    console.log("└────────────────────────────────────");
 
     if (toolCalls.length > 0) {
       return {
@@ -112,6 +148,41 @@ export class ClaudeSubprocessModel extends BaseChatModel {
     };
   }
 
+  override withStructuredOutput<
+    RunOutput extends Record<string, unknown> = Record<string, unknown>,
+  >(
+    outputSchema: unknown,
+    config?: StructuredOutputMethodOptions<boolean>,
+  ): Runnable<BaseLanguageModelInput, RunOutput> {
+    return chatModelWithStructuredOutput(this, outputSchema, config);
+  }
+
+  private static messageContentToString(content: unknown): string {
+    if (typeof content === "string") {
+      return content;
+    }
+    if (Array.isArray(content)) {
+      const parts: string[] = [];
+      for (const block of content) {
+        if (typeof block === "string") {
+          parts.push(block);
+        } else if (
+          block &&
+          typeof block === "object" &&
+          "type" in block &&
+          (block as { type: string }).type === "text" &&
+          "text" in block
+        ) {
+          parts.push(String((block as { text: string }).text));
+        }
+      }
+      if (parts.length > 0) {
+        return parts.join("\n");
+      }
+    }
+    return JSON.stringify(content);
+  }
+
   private formatMessages(messages: BaseMessage[]): {
     systemPrompt: string | null;
     userPrompt: string;
@@ -120,10 +191,7 @@ export class ClaudeSubprocessModel extends BaseChatModel {
     const parts: string[] = [];
 
     for (const msg of messages) {
-      const content =
-        typeof msg.content === "string"
-          ? msg.content
-          : JSON.stringify(msg.content);
+      const content = CursorSubprocessModel.messageContentToString(msg.content);
 
       switch (msg._getType()) {
         case "system":
@@ -194,7 +262,6 @@ Do not wrap your response in markdown code blocks when calling tools.`,
   }> {
     const trimmed = output.trim();
 
-    // Try parsing the entire output as JSON
     try {
       const parsed = JSON.parse(trimmed);
       if (parsed.tool_calls && Array.isArray(parsed.tool_calls)) {
@@ -206,7 +273,6 @@ Do not wrap your response in markdown code blocks when calling tools.`,
         }));
       }
     } catch {
-      // Not valid JSON — try to find an embedded JSON block
       const match = trimmed.match(/\{[\s\S]*"tool_calls"[\s\S]*\}/);
       if (match) {
         try {
@@ -228,11 +294,11 @@ Do not wrap your response in markdown code blocks when calling tools.`,
     return [];
   }
 
-  private runClaude(args: string[]): Promise<string> {
+  private runAgent(args: string[]): Promise<string> {
     return new Promise((resolve, reject) => {
       const env = { ...process.env };
       if (this.apiKey) {
-        env.ANTHROPIC_API_KEY = this.apiKey;
+        env.CURSOR_API_KEY = this.apiKey;
       }
       const proc = spawn(this.command, args, {
         stdio: ["pipe", "pipe", "pipe"],
@@ -251,7 +317,9 @@ Do not wrap your response in markdown code blocks when calling tools.`,
 
       proc.on("close", (code: number | null) => {
         if (code !== 0) {
-          reject(new Error(`Claude CLI exited with code ${code}: ${stderr}`));
+          reject(
+            new Error(`Cursor agent exited with code ${code}: ${stderr}`),
+          );
         } else {
           resolve(stdout.trim());
         }
