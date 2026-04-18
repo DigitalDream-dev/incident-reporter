@@ -1,0 +1,24 @@
+{
+  "_profiles": {
+    "copilot":   "copilot-extension",
+    "claude":    "subprocess",
+    "cursor":    "cursor-subprocess"
+  },
+  "_note": "Change providerMode to one of the values above to switch providers",
+
+  "providerMode": "copilot-extension",
+
+  "model": "openai:claude-sonnet-4.6",
+
+  "subprocess": {
+    "command": "claude",
+    "model": "claude-sonnet-4-6",
+    "apiKey": "sk-ant-your-anthropic-api-key-here"
+  },
+
+  "cursor": {
+    "command": "agent",
+    "model": "claude-4.6-sonnet",
+    "apiKey": "cur_your-cursor-api-key-here"
+  }
+}

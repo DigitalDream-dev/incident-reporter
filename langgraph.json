@@ -1,0 +1,8 @@
+{
+  "node_version": "20",
+  "graphs": {
+    "incident_workflow": "./src/graph/agent.ts:graph"
+  },
+  "dependencies": ["."],
+  "env": ".env"
+}

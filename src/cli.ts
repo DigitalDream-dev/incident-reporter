@@ -7,8 +7,8 @@
  *
  * Real Notion MCP: set MCP_SERVERS_JSON and omit USE_MOCK_NOTION.
  */
+import { getWorkflowModel } from "./adapter/provider.js";
 import { buildIncidentWorkflow } from "./graph/incident-workflow.js";
-import { createClaudeModel } from "./llm/create-claude-model.js";
 import { loadNotionMcpTools } from "./mcp/load-notion-tools.js";
 
 function parseArgs(): { pageId: string } {
@@ -23,7 +23,7 @@ function parseArgs(): { pageId: string } {
 
 async function main() {
   const { pageId } = parseArgs();
-  const llm = createClaudeModel();
+  const llm = getWorkflowModel();
   const tools = await loadNotionMcpTools();
   const workflow = buildIncidentWorkflow(llm, tools);
 
