@@ -3,15 +3,19 @@ import type { DynamicStructuredTool } from "@langchain/core/tools";
 import { notionMcpApiKey, useMockNotion } from "../config.js";
 import { createMockNotionTools } from "./mock-notion-tools.js";
 
-/** Official Notion MCP server (stdio). See https://www.npmjs.com/package/@notionhq/notion-mcp-server */
-function notionMcpStdioConnection(apiKey: string): Connection {
+/**
+ * Official Notion MCP server (stdio). It reads **NOTION_TOKEN** for the Notion API (not NOTION_API_KEY).
+ * @see https://github.com/makenotion/notion-mcp-server#option-1-using-notion_token-recommended
+ */
+function notionMcpStdioConnection(integrationToken: string): Connection {
   const env: Record<string, string> = {};
   for (const [k, v] of Object.entries(process.env)) {
     if (v !== undefined) {
       env[k] = v;
     }
   }
-  env.NOTION_API_KEY = apiKey;
+  // Resolved secret must win over any empty NOTION_* in the parent env.
+  env.NOTION_TOKEN = integrationToken;
   return {
     transport: "stdio",
     command: "npx",

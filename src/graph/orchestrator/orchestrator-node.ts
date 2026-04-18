@@ -33,11 +33,16 @@ export function createOrchestratorNode(llm: BaseChatModel) {
     }
 
     try {
+      const adoSection =
+        state.adoContext?.trim() ?
+          `\n\nAzure DevOps findings (related work items / problems):\n${state.adoContext.trim()}`
+        : "";
+
       const decision = await llm.withStructuredOutput(OrchestratorDecisionSchema).invoke([
         new SystemMessage(
-          `You are the incident orchestrator. You only check whether the filled template is plausible and complete for routing (non-empty fields, description and environment make sense together, timestamp looks reasonable).`,
+          `You are the incident orchestrator. You only check whether the filled template is plausible and complete for routing (non-empty fields, description and environment make sense together, timestamp looks reasonable). When Azure DevOps context is present, you may note duplicate or related work items as optional feedback — approval still depends on template quality.`,
         ),
-        new HumanMessage(`Template JSON:\n${JSON.stringify(parsed.data, null, 2)}`),
+        new HumanMessage(`Template JSON:\n${JSON.stringify(parsed.data, null, 2)}${adoSection}`),
       ]);
       return { orchestration: decision };
     } catch (err) {

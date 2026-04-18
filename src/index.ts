@@ -1,7 +1,14 @@
-export { getAnthropicModelName, getClaudeTransport, type ClaudeTransport } from "./config.js";
+export {
+  getAnthropicModelName,
+  getClaudeTransport,
+  incidentPendingTag,
+  type ClaudeTransport,
+} from "./config.js";
 export { buildIncidentWorkflow, type IncidentWorkflowState } from "./graph/incident-workflow.js";
 export { loadNotionMcpTools } from "./mcp/load-notion-tools.js";
+export { loadAzureDevOpsMcpTools } from "./mcp/load-azure-devops-mcp-tools.js";
 export { createMockNotionTools } from "./mcp/mock-notion-tools.js";
+export { createMockAzureDevOpsTools } from "./mcp/mock-azure-devops-tools.js";
 export {
   IncidentTemplateSchema, OrchestratorDecisionSchema, type IncidentTemplate, type OrchestratorDecision,
 } from "./schema/incident-template.js";

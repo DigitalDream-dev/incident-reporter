@@ -8,11 +8,13 @@ import "dotenv/config";
 import { MemorySaver } from "@langchain/langgraph-checkpoint";
 import { resolveAgentChatModel } from "./llm/inspector/resolve-chat-model.js";
 import { buildIncidentWorkflow } from "./graph/incident-workflow.js";
+import { loadAzureDevOpsMcpTools } from "./mcp/load-azure-devops-mcp-tools.js";
 import { loadNotionMcpTools } from "./mcp/load-notion-tools.js";
 
 const llm = resolveAgentChatModel();
-const tools = await loadNotionMcpTools();
+const notionTools = await loadNotionMcpTools();
+const adoTools = await loadAzureDevOpsMcpTools();
 
-export const graph = buildIncidentWorkflow(llm, tools, {
+export const graph = buildIncidentWorkflow(llm, notionTools, adoTools, {
   checkpointer: new MemorySaver(),
 });

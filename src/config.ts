@@ -57,26 +57,59 @@ export function resolveNotionPageId(explicit: string | undefined | null): string
 
 const DEFAULT_NOTION_API_BASE_URL = "https://api.notion.com";
 
-/**
- * API key for the official Notion MCP subprocess (`NOTION_API_KEY` in the child process).
- * `NOTION_API_KEY` wins; otherwise `NOTION_TOKEN` is reused so one integration secret can cover REST + MCP.
- */
-export function notionMcpApiKey(): string | undefined {
-  const explicit = process.env.NOTION_API_KEY?.trim();
-  if (explicit) {
-    return explicit;
+/** Same secret for REST (`fetch-page-context`) and MCP: prefer NOTION_API_KEY, else NOTION_TOKEN. */
+function resolveNotionIntegrationToken(): string | undefined {
+  const fromApiKey = process.env.NOTION_API_KEY?.trim();
+  if (fromApiKey) {
+    return fromApiKey;
   }
   return process.env.NOTION_TOKEN?.trim() || undefined;
 }
 
-/** Notion integration secret (Bearer token). When set, the extract step loads page text via Notion REST before the LLM runs. */
+/**
+ * Notion internal integration token for the MCP subprocess (passed through as NOTION_TOKEN to @notionhq/notion-mcp-server).
+ */
+export function notionMcpApiKey(): string | undefined {
+  return resolveNotionIntegrationToken();
+}
+
+/** When set, the extract step loads page text via Notion REST before the LLM runs. */
 export function notionToken(): string | undefined {
-  const t = process.env.NOTION_TOKEN?.trim();
-  return t || undefined;
+  return resolveNotionIntegrationToken();
 }
 
 /** Base URL for Notion REST API (omit path). Defaults to the official API when unset. */
 export function notionApiBaseUrl(): string {
   const u = process.env.NOTION_BASE_URL?.trim();
   return u || DEFAULT_NOTION_API_BASE_URL;
+}
+
+/** When true, use in-process mock Azure DevOps tools instead of the real MCP subprocess. */
+export function useMockAzureDevOps(): boolean {
+  return process.env.USE_MOCK_AZURE_DEVOPS === "1" || process.env.USE_MOCK_AZURE_DEVOPS === "true";
+}
+
+/**
+ * Ensures real Azure DevOps MCP (`@tiberriver256/mcp-server-azure-devops`) can authenticate.
+ * Default auth method is `pat` when unset (CI-friendly); use `azure-cli` or `azure-identity` otherwise.
+ */
+/** Tag used when searching Azure DevOps for open incidents (default `pending`). Override via INCIDENT_PENDING_TAG. */
+export function incidentPendingTag(): string {
+  return process.env.INCIDENT_PENDING_TAG?.trim() || "pending";
+}
+
+export function validateAzureDevOpsMcpConfig(): void {
+  const org = process.env.AZURE_DEVOPS_ORG_URL?.trim();
+  if (!org) {
+    throw new Error(
+      "Set AZURE_DEVOPS_ORG_URL (e.g. https://dev.azure.com/yourorg) or USE_MOCK_AZURE_DEVOPS=true.",
+    );
+  }
+  const auth = (process.env.AZURE_DEVOPS_AUTH_METHOD ?? "pat").trim().toLowerCase();
+  if (auth === "pat" && !process.env.AZURE_DEVOPS_PAT?.trim()) {
+    throw new Error(
+      "AZURE_DEVOPS_AUTH_METHOD is pat (default): set AZURE_DEVOPS_PAT, " +
+        "or set AZURE_DEVOPS_AUTH_METHOD to azure-cli / azure-identity and sign in as documented for the MCP server.",
+    );
+  }
 }

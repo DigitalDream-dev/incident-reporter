@@ -7,6 +7,10 @@ export const IncidentWorkflowStateAnnotation = Annotation.Root({
   extractAttempts: Annotation<number>,
   filledTemplate: Annotation<IncidentTemplate | null>,
   orchestration: Annotation<{ approved: boolean; feedback: string } | null>,
+  /** Summary from the Azure DevOps MCP step (related work items / problems). */
+  adoContext: Annotation<string | null>,
+  /** Set when the graph completes: true after orchestrator approval path, false when rejected. */
+  solved: Annotation<boolean | null>,
   createRecordResult: Annotation<string | null>,
 });
 

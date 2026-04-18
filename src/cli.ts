@@ -14,9 +14,11 @@ import "dotenv/config";
  *   - cursor-subprocess: set providerMode + `cursor` block
  *
  * Real Notion MCP: set NOTION_API_KEY (or NOTION_TOKEN) and USE_MOCK_NOTION=false (see .env.example).
+ * Azure DevOps MCP: USE_MOCK_AZURE_DEVOPS=false plus AZURE_DEVOPS_ORG_URL (and PAT if using pat auth).
  */
 import { resolveAgentChatModel } from "./llm/inspector/resolve-chat-model.js";
 import { buildIncidentWorkflow } from "./graph/incident-workflow.js";
+import { loadAzureDevOpsMcpTools } from "./mcp/load-azure-devops-mcp-tools.js";
 import { loadNotionMcpTools } from "./mcp/load-notion-tools.js";
 
 function parseArgs(): { pageId: string } {
@@ -39,14 +41,17 @@ function parseArgs(): { pageId: string } {
 async function main() {
   const { pageId } = parseArgs();
   const llm = resolveAgentChatModel();
-  const tools = await loadNotionMcpTools();
-  const workflow = buildIncidentWorkflow(llm, tools);
+  const notionTools = await loadNotionMcpTools();
+  const adoTools = await loadAzureDevOpsMcpTools();
+  const workflow = buildIncidentWorkflow(llm, notionTools, adoTools);
 
   const result = await workflow.invoke({
     notionPageId: pageId,
     extractAttempts: 0,
     filledTemplate: null,
     orchestration: null,
+    adoContext: null,
+    solved: null,
     createRecordResult: null,
   });
 

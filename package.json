@@ -1,7 +1,7 @@
 {
   "name": "incident-reporter",
   "version": "1.0.0",
-  "description": "LangGraph incident workflow: Notion MCP → static template → orchestrator → Notion write-back",
+  "description": "LangGraph incident workflow: Notion MCP → Azure DevOps context → orchestrator → console summary",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
