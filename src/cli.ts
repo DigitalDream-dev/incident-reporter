@@ -7,12 +7,13 @@ import "dotenv/config";
  *   ANTHROPIC_API_KEY=... USE_MOCK_NOTION=true npx tsx src/cli.ts --page-id <notion_page_id>
  *   npm requires `--` before script args:  npm run dev -- --page-id <notion_page_id>
  *   Or set NOTION_PAGE_ID in .env and run:  npm run dev
+ *   With USE_MOCK_NOTION=true, LangGraph dev can omit notionPageId — NOTION_PAGE_ID or a built-in mock id is used.
  *
  * LLM: `inspector.config.json` (or INSPECTOR_CONFIG_PATH); see `src/llm/inspector/`.
  *   - copilot-extension: set OPENAI_BASE_URL + OPENAI_API_KEY (.env)
  *   - cursor-subprocess: set providerMode + `cursor` block
  *
- * Real Notion MCP: set MCP_SERVERS_JSON and omit USE_MOCK_NOTION.
+ * Real Notion MCP: set NOTION_API_KEY (or NOTION_TOKEN) and USE_MOCK_NOTION=false (see .env.example).
  */
 import { resolveAgentChatModel } from "./llm/inspector/resolve-chat-model.js";
 import { buildIncidentWorkflow } from "./graph/incident-workflow.js";
@@ -43,6 +44,7 @@ async function main() {
 
   const result = await workflow.invoke({
     notionPageId: pageId,
+    extractAttempts: 0,
     filledTemplate: null,
     orchestration: null,
     createRecordResult: null,

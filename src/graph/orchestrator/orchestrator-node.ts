@@ -6,6 +6,9 @@ import {
 } from "../../schema/incident-template.js";
 import type { IncidentWorkflowState } from "../state.js";
 
+/** Max completed extract runs before the workflow stops retrying and finishes rejected. */
+export const MAX_EXTRACT_ATTEMPTS = 3;
+
 export function createOrchestratorNode(llm: BaseChatModel) {
   return async (
     state: IncidentWorkflowState,
@@ -29,19 +32,35 @@ export function createOrchestratorNode(llm: BaseChatModel) {
       };
     }
 
-    const decision = await llm.withStructuredOutput(OrchestratorDecisionSchema).invoke([
-      new SystemMessage(
-        `You are the incident orchestrator. You only check whether the filled template is plausible and complete for routing (non-empty fields, tags present, values consistent with each other).`,
-      ),
-      new HumanMessage(`Template JSON:\n${JSON.stringify(parsed.data, null, 2)}`),
-    ]);
-
-    return { orchestration: decision };
+    try {
+      const decision = await llm.withStructuredOutput(OrchestratorDecisionSchema).invoke([
+        new SystemMessage(
+          `You are the incident orchestrator. You only check whether the filled template is plausible and complete for routing (non-empty fields, description and environment make sense together, timestamp looks reasonable).`,
+        ),
+        new HumanMessage(`Template JSON:\n${JSON.stringify(parsed.data, null, 2)}`),
+      ]);
+      return { orchestration: decision };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        orchestration: {
+          approved: false,
+          feedback: `Orchestrator LLM output failed structured validation: ${msg}`,
+        },
+      };
+    }
   };
 }
 
 export function routeAfterOrchestrator(
   state: IncidentWorkflowState,
-): "createRecord" | "finishRejected" {
-  return state.orchestration?.approved ? "createRecord" : "finishRejected";
+): "agent1Extract" | "createRecord" | "finishRejected" {
+  if (state.orchestration?.approved) {
+    return "createRecord";
+  }
+  const attempts = state.extractAttempts ?? 0;
+  if (attempts < MAX_EXTRACT_ATTEMPTS) {
+    return "agent1Extract";
+  }
+  return "finishRejected";
 }

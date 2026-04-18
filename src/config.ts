@@ -28,18 +28,55 @@ export function useMockNotion(): boolean {
   return process.env.USE_MOCK_NOTION === "1" || process.env.USE_MOCK_NOTION === "true";
 }
 
+/** Default page id when `USE_MOCK_NOTION` is set and no id was passed in graph input or NOTION_PAGE_ID. */
+const DEFAULT_MOCK_NOTION_PAGE_ID = "00000000-0000-4000-8000-000000000001";
+
 /**
- * Optional JSON string: a map of server name → MCP connection (stdio/http/sse).
- * Passed through to MultiServerMCPClient as Record<string, Connection>.
+ * Resolves the Notion page id for extraction.
+ *
+ * Order: non-empty graph input `notionPageId` → `NOTION_PAGE_ID` env → if mock mode, `MOCK_NOTION_PAGE_ID` env or a stable default.
+ *
+ * LangGraph dev / Studio often omit `notionPageId` in the input payload; in that case env (and mock default) apply.
  */
-export function mcpServersJson(): Record<string, unknown> | null {
-  const raw = process.env.MCP_SERVERS_JSON;
-  if (!raw?.trim()) {
-    return null;
+export function resolveNotionPageId(explicit: string | undefined | null): string {
+  const trimmed = explicit?.trim();
+  if (trimmed) {
+    return trimmed;
   }
-  try {
-    return JSON.parse(raw) as Record<string, unknown>;
-  } catch {
-    throw new Error("MCP_SERVERS_JSON must be valid JSON");
+  const fromEnv = process.env.NOTION_PAGE_ID?.trim();
+  if (fromEnv) {
+    return fromEnv;
   }
+  if (useMockNotion()) {
+    return process.env.MOCK_NOTION_PAGE_ID?.trim() || DEFAULT_MOCK_NOTION_PAGE_ID;
+  }
+  throw new Error(
+    "Missing Notion page id: pass `notionPageId` in graph input, or set NOTION_PAGE_ID in the environment.",
+  );
+}
+
+const DEFAULT_NOTION_API_BASE_URL = "https://api.notion.com";
+
+/**
+ * API key for the official Notion MCP subprocess (`NOTION_API_KEY` in the child process).
+ * `NOTION_API_KEY` wins; otherwise `NOTION_TOKEN` is reused so one integration secret can cover REST + MCP.
+ */
+export function notionMcpApiKey(): string | undefined {
+  const explicit = process.env.NOTION_API_KEY?.trim();
+  if (explicit) {
+    return explicit;
+  }
+  return process.env.NOTION_TOKEN?.trim() || undefined;
+}
+
+/** Notion integration secret (Bearer token). When set, the extract step loads page text via Notion REST before the LLM runs. */
+export function notionToken(): string | undefined {
+  const t = process.env.NOTION_TOKEN?.trim();
+  return t || undefined;
+}
+
+/** Base URL for Notion REST API (omit path). Defaults to the official API when unset. */
+export function notionApiBaseUrl(): string {
+  const u = process.env.NOTION_BASE_URL?.trim();
+  return u || DEFAULT_NOTION_API_BASE_URL;
 }

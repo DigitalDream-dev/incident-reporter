@@ -33,6 +33,7 @@ export function buildIncidentWorkflow(
     .addEdge(START, "agent1Extract")
     .addEdge("agent1Extract", "orchestrator")
     .addConditionalEdges("orchestrator", routeAfterOrchestrator, [
+      "agent1Extract",
       "createRecord",
       "finishRejected",
     ])

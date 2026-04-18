@@ -21,6 +21,42 @@ interface ToolDef {
   parameters?: Record<string, unknown>;
 }
 
+/** LangChain tools vs OpenAI `{ type: "function", function: { name, ... } }` (used by structured output). */
+function normalizeBoundTool(t: unknown): ToolDef {
+  if (!t || typeof t !== "object") {
+    return { name: "tool", description: "" };
+  }
+  const o = t as Record<string, unknown>;
+  if (typeof o.name === "string") {
+    let parameters: Record<string, unknown> | undefined;
+    const schema = o.schema;
+    if (schema && typeof schema === "object" && schema !== null && "jsonSchema" in schema) {
+      const js = (schema as { jsonSchema?: () => Record<string, unknown> }).jsonSchema;
+      parameters = typeof js === "function" ? js() : undefined;
+    } else if (schema && typeof schema === "object") {
+      parameters = schema as Record<string, unknown>;
+    }
+    return {
+      name: o.name,
+      description: typeof o.description === "string" ? o.description : "",
+      parameters,
+    };
+  }
+  const fn = o.function;
+  if (fn && typeof fn === "object") {
+    const f = fn as Record<string, unknown>;
+    return {
+      name: typeof f.name === "string" ? f.name : "tool",
+      description: typeof f.description === "string" ? f.description : "",
+      parameters:
+        f.parameters && typeof f.parameters === "object"
+          ? (f.parameters as Record<string, unknown>)
+          : undefined,
+    };
+  }
+  return { name: "tool", description: "" };
+}
+
 interface CursorSubprocessParams extends BaseChatModelParams {
   command?: string;
   cursorModel?: string;
@@ -57,15 +93,7 @@ export class CursorSubprocessModel extends BaseChatModel {
       cursorModel: this.cursorModel,
       apiKey: this.apiKey,
     });
-    bound.boundTools = tools.map((t) => ({
-      name: t.name,
-      description: t.description,
-      parameters: t.schema
-        ? typeof t.schema.jsonSchema === "function"
-          ? t.schema.jsonSchema()
-          : t.schema
-        : undefined,
-    }));
+    bound.boundTools = tools.map((t) => normalizeBoundTool(t));
     return bound as this;
   }
 

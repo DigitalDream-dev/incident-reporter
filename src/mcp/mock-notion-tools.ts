@@ -9,7 +9,7 @@ export function createMockNotionTools(): DynamicStructuredTool[] {
   const getPage = new DynamicStructuredTool({
     name: "notion_get_page",
     description:
-      "Fetch a Notion page by id and return structured fields for incident triage (project, service, connection).",
+      "Fetch a Notion page by id and return structured fields for incident triage (project, description, environment, timestamp).",
     schema: z.object({
       page_id: z.string().describe("Notion page id or URL fragment"),
     }),
@@ -17,9 +17,9 @@ export function createMockNotionTools(): DynamicStructuredTool[] {
       const payload = {
         page_id,
         project: "universe",
-        service: "billing-api",
-        connection: "k8s:prod/billing, postgres:incidents-ro, kafka:main",
-        title: "[MOCK] Accepted incident",
+        description: "[MOCK] Billing API errors impacting card payments (synthetic incident page).",
+        environment: "prod",
+        timestamp: "2026-04-18T12:00:00.000Z",
         body: "Synthetic page body for local testing.",
       };
       return JSON.stringify(payload);
